@@ -14,5 +14,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+NO_ARGS=0 
 
-java TryLaunchGatling
+if [ $# -eq "$NO_ARGS" ]    # Script invoked with no command-line args?
+then
+  echo "Usage: `basename $0` option provide the same of the simulation "
+  exit $E_OPTERROR          # Exit and explain usage.
+                            # Usage: scriptname -options
+                            # Note: dash (-) necessary
+fi  
+
+while getopts ":mnopq:rs" Option
+do
+  case $Option in
+    q     )  java TryLaunchGatling $OPTARG
+  esac
+done
+
+#java TryLaunchGatling $OPTARG

@@ -7,8 +7,8 @@ public class TryLaunchGatling{
 	public static void main(String... args){
 		
 		String path = "/home/pif/gatling4";
-		
-		
+		String arg = args[0];
+		/*
 		try {
 
 			Process shell = Runtime.getRuntime().exec(path+"/bin/gatling.sh");            	
@@ -69,7 +69,7 @@ public class TryLaunchGatling{
 			e.printStackTrace();
 		} finally {
 			System.out.println("FINALLY is reach, the end is close");
-		}
+		}*/
 	}
 
 }

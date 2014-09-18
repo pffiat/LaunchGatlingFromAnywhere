@@ -1,17 +1,37 @@
 
 import java.io.*;
 import java.awt.Desktop;
+import java.net.*;
 
 public class TryLaunchGatling{
 
 	public static void main(String... args){
 		
 		String path = "/home/pif/gatling4";
-		String arg = args[0];
-		/*
+		if(args.length > 0) {
+			String arg = args[0];
+		}
+		
 		try {
+		
+			URL url = new URL("http://127.0.0.1:5984/_all_dbs");
+			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+			connection.setRequestMethod("GET");
+			connection.connect();           	
+				
+			BufferedReader in = new BufferedReader( new InputStreamReader(connection.getInputStream()));  
+			File script = new File(path+"/results/test.txt");
+			script.createNewFile();
+			script.setWritable(true);
+			FileWriter fileWriter = new FileWriter(script);
+        	   	String line = null;  
+        	   	while ((line = in.readLine()) != null) {
+    				fileWriter.write(line);
+        	   	}  
+			fileWriter.flush();
+			fileWriter.close();
 
-			Process shell = Runtime.getRuntime().exec(path+"/bin/gatling.sh");            	
+			/*Process shell = Runtime.getRuntime().exec(path+"/bin/gatling.sh");            	
 			BufferedReader in = new BufferedReader( new InputStreamReader(shell.getInputStream()));  
 
            		String line = null;  
@@ -61,7 +81,7 @@ public class TryLaunchGatling{
 
 			System.out.println(url);
 
-			Desktop.getDesktop().open(htmlFile);
+			Desktop.getDesktop().open(htmlFile);*/
 
 
 
@@ -69,7 +89,7 @@ public class TryLaunchGatling{
 			e.printStackTrace();
 		} finally {
 			System.out.println("FINALLY is reach, the end is close");
-		}*/
+		}
 	}
 
 }

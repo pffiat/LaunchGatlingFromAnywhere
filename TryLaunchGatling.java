@@ -2,50 +2,70 @@
 import java.io.*;
 import java.awt.Desktop;
 import java.net.*;
+import java.util.Date;
 
 public class TryLaunchGatling{
 
 	public static void main(String... args){
 		
 		String path = "/home/pif/gatling4";
+		String arg = "simuSansNom";
 		if(args.length > 0) {
-			String arg = args[0];
+			arg = args[0];
 		}
 		
 		try {
-		
-			URL url = new URL("http://127.0.0.1:5984/_all_dbs");
+
+			/*get the script from the json webservice*/
+			URL url = new URL("http://localhost:8080/api/jsonws/gatling-liferay-portlet.websimu/get-simulation/simu-id/402");
+
+			String fileName = arg + new Date().getTime();
 			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
 			connection.setRequestMethod("GET");
+			sun.misc.BASE64Encoder enc = new sun.misc.BASE64Encoder();
+		        String userpassword = "test@liferay.com" + ":" + "test";
+		        String encodedAuthorization = enc.encode( userpassword.getBytes() );
+		        connection.setRequestProperty("Authorization", "Basic "+ encodedAuthorization);
 			connection.connect();           	
 				
-			BufferedReader in = new BufferedReader( new InputStreamReader(connection.getInputStream()));  
-			File script = new File(path+"/results/test.txt");
+			/*write the script in a file*/
+			BufferedReader in = new BufferedReader( new InputStreamReader(connection.getInputStream()));
+			TryLaunchGatling.removeSameSimu(path+"/user-files/simulations/",arg);
+			File script = new File(path+"/user-files/simulations/" + fileName + ".scala");
 			script.createNewFile();
 			script.setWritable(true);
 			FileWriter fileWriter = new FileWriter(script);
-        	   	String line = null;  
-        	   	while ((line = in.readLine()) != null) {
-    				fileWriter.write(line);
-        	   	}  
+        	   	String line = "";  
+			String totalLine = "";
+
+			while ((line = in.readLine()) != null) {
+				totalLine += line;
+        	   	}
+			totalLine = totalLine.substring(1,totalLine.length()-1).replace("&#10;", "\n").replace("&#13;", "\t").replace("\\\"", "\"");
+			fileWriter.write(totalLine);
 			fileWriter.flush();
 			fileWriter.close();
+			
+			/*execute gatling*/
+			Process shell = Runtime.getRuntime().exec(path+"/bin/gatling.sh");            	
+			in = new BufferedReader( new InputStreamReader(shell.getInputStream()));  
 
-			/*Process shell = Runtime.getRuntime().exec(path+"/bin/gatling.sh");            	
-			BufferedReader in = new BufferedReader( new InputStreamReader(shell.getInputStream()));  
-
-           		String line = null;  
-           		while ((line = in.readLine()) != null && !line.equals("Choose a simulation number:") ) {
-    				System.out.println(line);
+           		while (!"Choose a simulation number:".equals(line) ) {
+           			if(line!=null){
+    				System.out.println(line);           				
+           			}
+				line = in.readLine();
+			
            		}  
 
 			try {	Thread.sleep(1000);
 			} catch (InterruptedException e) {e.printStackTrace();} 
 			
-			
+			System.out.println("-------");
 			BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(shell.getOutputStream()));
 			bufferedWriter.write("0\n");
 			bufferedWriter.flush();
+			System.out.println("-write and flush-");
 
            		while ((line = in.readLine()) != null && !line.equals("Select simulation id (default is 'simulationpifsimu'). Accepted characters are a-z, A-Z, 0-9, - and _")) {
            		}  
@@ -62,10 +82,10 @@ public class TryLaunchGatling{
 			try {	Thread.sleep(1000);
 			} catch (InterruptedException e) {e.printStackTrace();} 
 						 
-			String url = line.substring(32); 
-			url = url.substring(0, url.length()-11);
+			String urlString = line.substring(32); 
+			urlString = urlString.substring(0, urlString.length()-11);
 			File htmlFile = null;
-			File dir = new File(url);
+			File dir = new File(urlString);
 			System.out.println("dir "+dir.exists());
 
 			File[] list = dir.listFiles();
@@ -79,9 +99,9 @@ public class TryLaunchGatling{
 
 			}
 
-			System.out.println(url);
-
-			Desktop.getDesktop().open(htmlFile);*/
+			System.out.println(urlString);
+			/*open the results of the simulation*/
+			Desktop.getDesktop().open(htmlFile);
 
 
 
@@ -92,5 +112,17 @@ public class TryLaunchGatling{
 		}
 	}
 
-}
+	public static void removeSameSimu(String path, String name){
+		File dir = new File(path);
+		File[] list = dir.listFiles();
+		for (File file : list) {
 
+			if (file.getName().contains(name)){
+				file.delete();
+			}
+				
+		}
+
+	}
+
+}

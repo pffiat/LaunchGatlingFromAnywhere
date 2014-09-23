@@ -10,27 +10,17 @@ public class TryLaunchGatling{
 		
 		String path = "/home/pif/gatling4";
 		String arg = "simuSansNom";
+		String simuLine = "";
 		if(args.length > 0) {
 			arg = args[0];
 		}
 		
 		try {
-
-			/*get the script from the json webservice*/
-			URL url = new URL("http://localhost:8080/api/jsonws/gatling-liferay-portlet.websimu/get-simulation/simu-id/402");
-
+			InputStream inputStream = TryLaunchGatling.getScript();
 			String fileName = arg + new Date().getTime();
-			HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-			connection.setRequestMethod("GET");
-			sun.misc.BASE64Encoder enc = new sun.misc.BASE64Encoder();
-		        String userpassword = "test@liferay.com" + ":" + "test";
-		        String encodedAuthorization = enc.encode( userpassword.getBytes() );
-		        connection.setRequestProperty("Authorization", "Basic "+ encodedAuthorization);
-			connection.connect();           	
-				
+
 			/*write the script in a file*/
-			BufferedReader in = new BufferedReader( new InputStreamReader(connection.getInputStream()));
-			TryLaunchGatling.removeSameSimu(path+"/user-files/simulations/",arg);
+			BufferedReader in = new BufferedReader( new InputStreamReader(inputStream));
 			File script = new File(path+"/user-files/simulations/" + fileName + ".scala");
 			script.createNewFile();
 			script.setWritable(true);
@@ -42,10 +32,15 @@ public class TryLaunchGatling{
 				totalLine += line;
         	   	}
 			totalLine = totalLine.substring(1,totalLine.length()-1).replace("&#10;", "\n").replace("&#13;", "\t").replace("\\\"", "\"");
+
+			simuLine = TryLaunchGatling.getSimuLine(totalLine);
+
+			TryLaunchGatling.removeSameSimu(path+"/user-files/simulations/", arg, simuLine);
+
 			fileWriter.write(totalLine);
 			fileWriter.flush();
 			fileWriter.close();
-			
+
 			/*execute gatling*/
 			Process shell = Runtime.getRuntime().exec(path+"/bin/gatling.sh");            	
 			in = new BufferedReader( new InputStreamReader(shell.getInputStream()));  
@@ -61,7 +56,6 @@ public class TryLaunchGatling{
 			try {	Thread.sleep(1000);
 			} catch (InterruptedException e) {e.printStackTrace();} 
 			
-			System.out.println("-------");
 			BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(shell.getOutputStream()));
 			bufferedWriter.write("0\n");
 			bufferedWriter.flush();
@@ -112,17 +106,68 @@ public class TryLaunchGatling{
 		}
 	}
 
-	public static void removeSameSimu(String path, String name){
+	public static void removeSameSimu(String path, String name, String simuLine) throws IOException {
 		File dir = new File(path);
 		File[] list = dir.listFiles();
+		System.out.println("removeFile  "+simuLine);
 		for (File file : list) {
-
-			if (file.getName().contains(name)){
-				file.delete();
+			if(file.getName().contains(".scala")){
+				FileReader fileReader = new FileReader(file);
+				BufferedReader bufferedReader = new BufferedReader(fileReader);
+				String line = bufferedReader.readLine();
+				while((line= bufferedReader.readLine()) !=null) { 
+					if(simuLine.equals(line)){
+						System.out.println("removeFile succed? " +file.delete());
+						break;
+					}
+				}
 			}
 				
 		}
 
+	}
+
+	public static InputStream getScript() throws IOException {			
+
+		/*get the script from the json webservice*/
+		URL url = new URL("http://localhost:8080/api/jsonws/gatling-liferay-portlet.websimu/get-simulation/simu-id/402");
+
+		HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+		connection.setRequestMethod("GET");
+		sun.misc.BASE64Encoder enc = new sun.misc.BASE64Encoder();
+	        String userpassword = "test@liferay.com" + ":" + "test";
+	        String encodedAuthorization = enc.encode( userpassword.getBytes() );
+	        connection.setRequestProperty("Authorization", "Basic "+ encodedAuthorization);
+		connection.connect();   
+
+		return connection.getInputStream();
+
+	}
+
+	public static String getSimuLine(String totalLine) throws IOException{ 
+		String simuLine = "";
+		
+		File tempo = new File("tempo.scala");
+		tempo.createNewFile();
+		tempo.setWritable(true);
+		FileWriter fileWriter = new FileWriter(tempo);
+		fileWriter.write(totalLine);
+		fileWriter.flush();
+		fileWriter.close();
+
+		BufferedReader bufferedReader = new BufferedReader(new FileReader(tempo));
+		String line = bufferedReader.readLine();
+
+		while( (line = bufferedReader.readLine()) != null) { 
+			if(line.contains("extends Simulation")) {
+				simuLine = line;
+				break;				
+			}
+		}
+
+		tempo.delete();
+		return simuLine;
+		
 	}
 
 }
